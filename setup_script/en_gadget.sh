@@ -1,4 +1,4 @@
-#!/usr/bin/sh
+#!/bin/sh
 # This script enable usb hid gadget, need sudo permission
 # 0x409 ini the script is language code for LANG_ENGLISH
 
@@ -9,6 +9,9 @@ if test "$(id -u)" != "0";then
 else
 	echo "running under sudo..."
 fi
+
+mount -t configfs none /sys/kernel/config
+
 cd $(dirname $0)
 shellDir=$(pwd)
 ##############################[ User Settings begin]##########################################################
@@ -59,7 +62,13 @@ main()
 	# append new lines here if you have more functions 
 	##############################[ User Settings end]##########################################################
 	
-	echo $UDC  >UDC #enable gadget
+	cd ${usb_gadgetDir}/${gadgetName} #note: in function the pwd will be reset
+    pwd
+    echo "cuurent UDC: "
+    cat UDC
+	# echo $UDC > UDC #enable gadget
+	echo "" > UDC #enable gadget
+    getprop sys.usb.controller > UDC
 	#check devices
 	for hidg in $(ls /dev/hid*);do
 		echo $hidg
@@ -76,9 +85,14 @@ gadget_setup()
 	cd ${gadgetName} 
 	echo "current working in $(pwd)"
 
-	# strings setting
 	echo ${idVendor} > idVendor
 	echo ${idProduct} > idProduct
+
+	# strings setting
+    echo 0x0200 > bcdUSB
+    echo 0xEF > bDeviceClass
+    echo 0x02 > bDeviceSubClass
+    echo 0x01 > bDeviceProtocol
 
 	mkdir strings/0x409
 	echo ${serialNumber} > strings/0x409/serialnumber
@@ -90,6 +104,7 @@ gadget_setup()
 	mkdir configs/${configName}/strings/0x409 -p
 	echo ${configDesc} > configs/${configName}/strings/0x409/configuration
 	echo ${MaxPower} > configs/${configName}/MaxPower
+	echo 0x80 > configs/${configName}/bmAttributes
 
 	echo "gadget setup finished"
 }
